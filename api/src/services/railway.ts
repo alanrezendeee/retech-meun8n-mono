@@ -14,8 +14,6 @@ const BASE_DOMAIN = process.env.BASE_DOMAIN ?? 'meun8n.theretech.com.br'
 // Naming conventions
 const svcName = (slug: string) => `retech-meun8n-${slug}`
 const dbName  = (slug: string) => `retech-meun8n-${slug}-db`
-const dbVolName  = (slug: string) => `retech-meun8n-${slug}-db-volume`
-const n8nVolName = (slug: string) => `retech-meun8n-admin-${slug}-volume`
 
 export async function createPostgresService(slug: string): Promise<string> {
   const mutation = gql`
@@ -43,7 +41,7 @@ export async function createPostgresService(slug: string): Promise<string> {
     PGDATA: '/var/lib/postgresql/data/pgdata',
   })
 
-  await createVolume(serviceId, dbVolName(slug), '/var/lib/postgresql/data')
+  await createVolume(serviceId, '/var/lib/postgresql/data')
   await redeployService(serviceId)
 
   return serviceId
@@ -93,7 +91,7 @@ export async function createN8nService(
   })
 
   await addCustomDomain(serviceId, domain)
-  await createVolume(serviceId, n8nVolName(slug), '/home/node/.n8n')
+  await createVolume(serviceId, '/home/node/.n8n')
   await redeployService(serviceId)
 
   return serviceId
@@ -127,11 +125,7 @@ async function setServiceVariables(
   })
 }
 
-async function createVolume(
-  serviceId: string,
-  name: string,
-  mountPath: string,
-): Promise<void> {
+async function createVolume(serviceId: string, mountPath: string): Promise<void> {
   const mutation = gql`
     mutation volumeCreate($input: VolumeCreateInput!) {
       volumeCreate(input: $input) {
@@ -144,7 +138,6 @@ async function createVolume(
       projectId: PROJECT_ID,
       environmentId: ENVIRONMENT_ID,
       serviceId,
-      name,
       mountPath,
     },
   })
