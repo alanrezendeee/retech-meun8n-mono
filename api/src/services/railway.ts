@@ -29,12 +29,16 @@ export async function createPostgresService(slug: string): Promise<string> {
 
   const serviceId = data.serviceCreate.id
 
+  const password = generatePassword()
+
   await setServiceVariables(serviceId, {
     POSTGRES_DB: `n8n_${slug}`,
     POSTGRES_USER: 'n8n',
-    POSTGRES_PASSWORD: generatePassword(),
+    POSTGRES_PASSWORD: password,
     PGDATA: '/var/lib/postgresql/data/pgdata',
   })
+
+  await createVolume(serviceId, `postgres-${slug}-volume`, '/var/lib/postgresql/data')
 
   return serviceId
 }
@@ -83,6 +87,7 @@ export async function createN8nService(
   })
 
   await addCustomDomain(serviceId, domain)
+  await createVolume(serviceId, `n8n-${slug}-volume`, '/home/node/.n8n')
 
   return serviceId
 }
@@ -111,6 +116,29 @@ async function setServiceVariables(
       environmentId: ENVIRONMENT_ID,
       serviceId,
       variables,
+    },
+  })
+}
+
+async function createVolume(
+  serviceId: string,
+  name: string,
+  mountPath: string,
+): Promise<void> {
+  const mutation = gql`
+    mutation volumeCreate($input: VolumeCreateInput!) {
+      volumeCreate(input: $input) {
+        id
+      }
+    }
+  `
+  await client.request(mutation, {
+    input: {
+      projectId: PROJECT_ID,
+      environmentId: ENVIRONMENT_ID,
+      serviceId,
+      name,
+      mountPath,
     },
   })
 }
