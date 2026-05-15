@@ -11,6 +11,12 @@ const ENVIRONMENT_ID = process.env.RAILWAY_ENVIRONMENT_ID!
 const N8N_IMAGE = process.env.N8N_IMAGE ?? 'n8nio/n8n:2.13.4'
 const BASE_DOMAIN = process.env.BASE_DOMAIN ?? 'meun8n.theretech.com.br'
 
+// Naming conventions
+const svcName = (slug: string) => `retech-meun8n-${slug}`
+const dbName  = (slug: string) => `retech-meun8n-${slug}-db`
+const dbVolName  = (slug: string) => `retech-meun8n-${slug}-db-volume`
+const n8nVolName = (slug: string) => `retech-meun8n-admin-${slug}-volume`
+
 export async function createPostgresService(slug: string): Promise<string> {
   const mutation = gql`
     mutation serviceCreate($input: ServiceCreateInput!) {
@@ -22,13 +28,12 @@ export async function createPostgresService(slug: string): Promise<string> {
   const data = await client.request<{ serviceCreate: { id: string } }>(mutation, {
     input: {
       projectId: PROJECT_ID,
-      name: `postgres-${slug}`,
+      name: dbName(slug),
       source: { image: 'postgres:16-alpine' },
     },
   })
 
   const serviceId = data.serviceCreate.id
-
   const password = generatePassword()
 
   await setServiceVariables(serviceId, {
@@ -38,7 +43,7 @@ export async function createPostgresService(slug: string): Promise<string> {
     PGDATA: '/var/lib/postgresql/data/pgdata',
   })
 
-  await createVolume(serviceId, `postgres-${slug}-volume`, '/var/lib/postgresql/data')
+  await createVolume(serviceId, dbVolName(slug), '/var/lib/postgresql/data')
 
   return serviceId
 }
@@ -58,7 +63,7 @@ export async function createN8nService(
   const data = await client.request<{ serviceCreate: { id: string } }>(mutation, {
     input: {
       projectId: PROJECT_ID,
-      name: `n8n-${slug}`,
+      name: svcName(slug),
       source: { image: N8N_IMAGE },
     },
   })
@@ -68,11 +73,11 @@ export async function createN8nService(
 
   await setServiceVariables(serviceId, {
     DB_TYPE: 'postgresdb',
-    DB_POSTGRESDB_HOST: '${{postgres-' + slug + '.RAILWAY_PRIVATE_DOMAIN}}',
+    DB_POSTGRESDB_HOST: '${{' + dbName(slug) + '.RAILWAY_PRIVATE_DOMAIN}}',
     DB_POSTGRESDB_PORT: '5432',
     DB_POSTGRESDB_DATABASE: `n8n_${slug}`,
     DB_POSTGRESDB_USER: 'n8n',
-    DB_POSTGRESDB_PASSWORD: '${{postgres-' + slug + '.POSTGRES_PASSWORD}}',
+    DB_POSTGRESDB_PASSWORD: '${{' + dbName(slug) + '.POSTGRES_PASSWORD}}',
     N8N_HOST: domain,
     N8N_PORT: '5678',
     N8N_PROTOCOL: 'https',
@@ -87,7 +92,7 @@ export async function createN8nService(
   })
 
   await addCustomDomain(serviceId, domain)
-  await createVolume(serviceId, `n8n-${slug}-volume`, '/home/node/.n8n')
+  await createVolume(serviceId, n8nVolName(slug), '/home/node/.n8n')
 
   return serviceId
 }
