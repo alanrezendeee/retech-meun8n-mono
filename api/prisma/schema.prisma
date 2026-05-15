@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id                   String       @id @default(cuid())
+  slug                 String       @unique
+  domain               String       @unique
+  plan                 String       @default("starter")
+  status               TenantStatus @default(PROVISIONING)
+  encryptionKey        String
+  railwayServiceId     String?
+  railwayDbServiceId   String?
+  n8nOwnerEmail        String?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@map("tenants")
+}
+
+enum TenantStatus {
+  PROVISIONING
+  ACTIVE
+  SUSPENDED
+  DEPROVISIONED
+}

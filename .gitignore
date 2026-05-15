@@ -4,3 +4,8 @@ n8n_data
 
 # configs reais dos clientes (usar .example como referência)
 clients/*/config.env
+
+# api
+api/.env
+api/node_modules
+api/dist
