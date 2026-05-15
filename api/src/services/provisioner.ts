@@ -17,12 +17,19 @@ export async function provisionTenant(
         status: TenantStatus.ACTIVE,
         railwayDbServiceId: dbServiceId,
         railwayServiceId: n8nServiceId,
+        provisionError: null,
       },
     })
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error(`[provisioner] tenant=${tenant.slug} error=${message}`, err)
+
     await prisma.tenant.update({
       where: { id: tenantId },
-      data: { status: TenantStatus.DEPROVISIONED },
+      data: {
+        status: TenantStatus.DEPROVISIONED,
+        provisionError: message,
+      },
     })
     throw err
   }

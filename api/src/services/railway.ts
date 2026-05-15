@@ -44,6 +44,7 @@ export async function createPostgresService(slug: string): Promise<string> {
   })
 
   await createVolume(serviceId, dbVolName(slug), '/var/lib/postgresql/data')
+  await redeployService(serviceId)
 
   return serviceId
 }
@@ -93,6 +94,7 @@ export async function createN8nService(
 
   await addCustomDomain(serviceId, domain)
   await createVolume(serviceId, n8nVolName(slug), '/home/node/.n8n')
+  await redeployService(serviceId)
 
   return serviceId
 }
@@ -164,6 +166,15 @@ async function addCustomDomain(serviceId: string, domain: string): Promise<void>
       domain,
     },
   })
+}
+
+async function redeployService(serviceId: string): Promise<void> {
+  const mutation = gql`
+    mutation serviceInstanceRedeploy($serviceId: String!, $environmentId: String!) {
+      serviceInstanceRedeploy(serviceId: $serviceId, environmentId: $environmentId)
+    }
+  `
+  await client.request(mutation, { serviceId, environmentId: ENVIRONMENT_ID })
 }
 
 function generatePassword(): string {

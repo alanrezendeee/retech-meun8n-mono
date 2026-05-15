@@ -17,6 +17,7 @@ model Tenant {
   railwayServiceId     String?
   railwayDbServiceId   String?
   n8nOwnerEmail        String?
+  provisionError       String?
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
 
