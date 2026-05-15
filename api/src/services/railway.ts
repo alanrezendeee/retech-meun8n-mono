@@ -91,7 +91,6 @@ export async function createN8nService(
   })
 
   await addCustomDomain(serviceId, domain)
-  await createVolume(serviceId, '/home/node/.n8n')
   await redeployService(serviceId)
 
   return serviceId
